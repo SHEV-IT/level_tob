@@ -20,12 +20,21 @@ def make_handler_with_queue(msg_queue):
 
         def do_POST(self):
             logging.info(self.path)
-            assert '/callkek' in self.path
-            ctype, pdict = cgi.parse_header(self.headers.getheader('content-type'))
-            length = int(self.headers.getheader('content-length'))
-            data = self.rfile.read(length)
-            data = simplejson.loads(data)
-            group_id = data['group_id']
+
+            if c.CALLBACK_PATH not in self.path:
+                self.reply_not_found()
+                return
+
+            try:
+                ctype, pdict = cgi.parse_header(self.headers.getheader('content-type'))
+                length = int(self.headers.getheader('content-length'))
+                data = self.rfile.read(length)
+                data = simplejson.loads(data)
+                group_id = data['group_id']
+            except:
+                # bad request
+                self.reply_code_msg(400, '')
+                return
 
             if group_id not in c.VK_PROJECTS:
                 # unknown group
@@ -47,16 +56,17 @@ def make_handler_with_queue(msg_queue):
                 logging.info('wrong secret in request for %s' % name)
                 self.reply_not_found()
 
-        def reply_not_found(self, msg=''):
-            self.send_error(404)
+        def reply_code_msg(self, code, msg=None):
+            self.send_response(code)
             self.end_headers()
-            self.wfile.write(msg)
+            if msg is not None:
+                self.wfile.write(msg)
+
+        def reply_not_found(self, msg=''):
+            self.reply_code_msg(404, msg)
 
         def reply_ok(self, msg='ok'):
-            self.send_response(200)
-            self.end_headers()
-            if msg:
-                self.wfile.write(msg)
+            self.reply_code_msg(200, msg)
 
         def log_message(self, format, *args):
             return
