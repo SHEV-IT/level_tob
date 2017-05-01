@@ -1,0 +1,6 @@
+.idea/
+*.pyc
+constants.py
+projects/*
+!projects/__init__.py
+!projects/abstract.py
