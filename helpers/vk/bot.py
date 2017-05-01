@@ -27,14 +27,9 @@ def make_handler_with_queue(msg_queue):
             data = simplejson.loads(data)
             group_id = data['group_id']
 
-            if group_id in c.VK_PROJECTS:
-                self.send_response(200)
-                self.end_headers()
-            else:
+            if group_id not in c.VK_PROJECTS:
                 # unknown group
-                self.send_error(404)
-                self.end_headers()
-                self.wfile.write('')
+                self.reply_not_found()
                 return
 
             request_type = data.get('type', 'kek')
@@ -43,14 +38,25 @@ def make_handler_with_queue(msg_queue):
 
             if request_type == 'confirmation':
                 logging.info('got confirmation request for %s' % name)
-                self.wfile.write(group_data['confirm'])
+                self.reply_ok(group_data['confirm'])
             elif data['secret'] == group_data['token']:
                 logging.info('got vk request %s for %s' % (request_type, name))
                 self.queue[group_id].put({'from': 'vk', 'event': data})
-                self.wfile.write('ok')
+                self.reply_ok()
             else:
                 logging.info('wrong secret in request for %s' % name)
-                self.wfile.write('')
+                self.reply_not_found()
+
+        def reply_not_found(self, msg=''):
+            self.send_error(404)
+            self.end_headers()
+            self.wfile.write(msg)
+
+        def reply_ok(self, msg='ok'):
+            self.send_response(200)
+            self.end_headers()
+            if msg:
+                self.wfile.write(msg)
 
         def log_message(self, format, *args):
             return
