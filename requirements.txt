@@ -1,5 +1,2 @@
-# bot/telegram
-python-telegram-bot
-
 # bot/vk
 requests
