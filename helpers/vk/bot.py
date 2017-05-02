@@ -21,7 +21,7 @@ def make_handler_with_queue(msg_queue):
         def do_POST(self):
             logging.info(self.path)
 
-            if c.CALLBACK_PATH not in self.path:
+            if c.CALLBACK_PATH != self.path:
                 self.reply_not_found()
                 return
 
@@ -45,7 +45,7 @@ def make_handler_with_queue(msg_queue):
             group_data = c.VK_PROJECTS[group_id]
             name = group_data['name']
 
-            if request_type == 'confirmation':
+            if request_type == 'confirmation' and c.CONFIRMATION_ENABLED:
                 logging.info('got confirmation request for %s' % name)
                 self.reply_ok(group_data['confirm'])
             elif data['secret'] == group_data['token']:
