@@ -45,10 +45,10 @@ def make_handler_with_queue(msg_queue):
             group_data = c.VK_PROJECTS[group_id]
             name = group_data['name']
 
-            if request_type == 'confirmation' and c.CONFIRMATION_ENABLED:
+            if request_type == 'confirmation':
                 logging.info('got confirmation request for %s' % name)
                 self.reply_ok(group_data['confirm'])
-            elif data['secret'] == group_data['token']:
+            elif data.get('secret') == group_data['token']:
                 logging.info('got vk request %s for %s' % (request_type, name))
                 self.queue[group_id].put({'from': 'vk', 'event': data})
                 self.reply_ok()
