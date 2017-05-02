@@ -4,6 +4,7 @@ import os
 import sys
 import logging
 import signal
+from single_process import single_process
 from helpers.vk.bot import VkBot
 import constants as c
 
@@ -13,15 +14,6 @@ if c.DEBUG:
         level=logging.INFO,
         format='%(asctime)s %(levelname)s %(message)s',
     )
-
-
-def stop_if_already_running():
-    script_name = __file__
-    l = commands.getstatusoutput(
-        "ps aux | grep -e '%s' | grep -v grep | awk '{print $2}'| awk '{print $2}'" % script_name)
-    if l[1].strip():
-        logging.info('init: already running')
-        os._exit(0)
 
 
 def run_bots():
@@ -47,9 +39,8 @@ bots = []
 logging.info('start process')
 
 
+@single_process
 def main():
-    stop_if_already_running()
-
     signal.signal(signal.SIGINT, signal_handler)
     bots.append(VkBot())
     run_bots()

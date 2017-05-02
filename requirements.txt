@@ -1,2 +1,3 @@
-# bot/vk
 requests
+simplejson
+single_process
