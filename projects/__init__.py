@@ -2,6 +2,7 @@ from abstract import Bot
 import os
 import imp
 import inspect
+import sys
 import constants as c
 
 modules = dict()
@@ -17,6 +18,7 @@ def get_subclass(mod, cls):
 for project_id in c.VK_PROJECTS:
     project_name = c.VK_PROJECTS[project_id]['name']
     project_module = c.VK_PROJECTS[project_id].get('module', project_name)
+    sys.modules.pop(project_module, None)  # prevent loading cached module
     module = __import__(project_module, globals(), locals(), [], -1)
     bot_class = get_subclass(module, Bot)
     if bot_class:

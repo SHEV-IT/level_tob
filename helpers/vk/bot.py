@@ -9,6 +9,10 @@ import threading
 import cgi
 import simplejson
 import ssl
+import sys
+import pyinotify
+import os
+import time
 import logging
 
 import projects
@@ -105,29 +109,74 @@ class SimpleHttpServer():
 
 
 class VkBot(BotFather):
+    instance = None
+
     def __init__(self, token=None):
         super(VkBot, self).__init__(token)
         # /callkek -> bot queue
+        VkBot.instance = self
         self.queue = dict()
-        self.bots = []
+        self.bots = dict()
+        self.threads = dict()
         for project_id in c.VK_PROJECTS:
             project_name = c.VK_PROJECTS[project_id]['name']
-            print 'starting', project_name
-            queue = Queue()
-            bot_instance = projects.modules[project_name](queue=queue)
-            bot_thread = threading.Thread(target=bot_instance.worker, name='bot_thread_%s' % project_name)
-            bot_thread.start()
-            self.bots.append(bot_instance)
-            self.queue[project_id] = queue
+            self.run_project(project_id, project_name)
+        watch_reload()
         self.server = SimpleHttpServer('0.0.0.0', 443 if not c.DEBUG else 80, queue=self.queue)
+
+    def run_project(self, project_id, project_name):
+        print 'starting', project_name
+        if project_id in self.bots:  # reload
+            queue = self.queue[project_id]
+            self.bots[project_id].stop = True
+            self.queue[project_id].put({'from': 'vk', 'event': 'stop'})
+        else:
+            queue = Queue()
+        bot_instance = projects.modules[project_name](queue=queue)
+        bot_thread = threading.Thread(target=bot_instance.worker, name='bot_thread_%s' % project_name)
+        bot_thread.start()
+        self.bots[project_id] = bot_instance
+        self.queue[project_id] = queue
+        self.threads[project_id] = bot_thread
 
     def run(self):
         logging.info('HTTP Server Running...........')
         self.server.start()
 
     def stop(self):
-        for bot in self.bots:
+        for bot in self.bots.values():
             bot.stop = True
         for queue in self.queue.values():
             queue.put({'from': 'vk', 'event': 'stop'})
         self.server.stop()
+
+    def reload(self):
+        global projects
+
+        with open(c.RELOAD_FILE) as f:
+            project_names = f.read().strip().split()
+        os.remove(c.RELOAD_FILE)
+
+        del sys.modules['projects']  # remove projects from cache
+        import projects
+
+        for project_id in c.VK_PROJECTS:
+            project_name = c.VK_PROJECTS[project_id]['name']
+            if project_name in project_names:
+                print 'reloading', project_name
+                self.run_project(project_id, project_name)
+
+
+class ReloadEventReceiver(pyinotify.ProcessEvent):
+    def process_IN_MODIFY(self, event):
+        VkBot.instance.reload()
+
+    def process_default(self, event):
+        pass
+
+
+def watch_reload(filename=c.RELOAD_FILE):
+    wm = pyinotify.WatchManager()
+    notifier = pyinotify.Notifier(wm)
+    wm.watch_transient_file(filename, pyinotify.IN_MODIFY, ReloadEventReceiver)
+    threading.Thread(target=notifier.loop).start()
