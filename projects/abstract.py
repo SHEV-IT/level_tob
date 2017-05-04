@@ -1,5 +1,6 @@
 # coding: utf-8
 from abc import ABCMeta, abstractmethod
+from Queue import Empty
 
 
 class Bot:
@@ -11,9 +12,12 @@ class Bot:
 
     def worker(self):
         while not self.stop:
-            msg = self.queue.get()
-            if msg['event'] != 'stop':
+            try:
+                msg = self.queue.get(False, 1)
                 self.proceed(msg)
+            except Empty:
+                pass
+
 
     @abstractmethod
     def proceed(self, msg):

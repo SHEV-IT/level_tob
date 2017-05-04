@@ -129,7 +129,6 @@ class VkBot(BotFather):
         if project_id in self.bots:  # reload
             queue = self.queue[project_id]
             self.bots[project_id].stop = True
-            self.queue[project_id].put({'from': 'vk', 'event': 'stop'})
         else:
             queue = Queue()
         bot_instance = projects.modules[project_name](queue=queue)
@@ -146,8 +145,6 @@ class VkBot(BotFather):
     def stop(self):
         for bot in self.bots.values():
             bot.stop = True
-        for queue in self.queue.values():
-            queue.put({'from': 'vk', 'event': 'stop'})
         self.server.stop()
 
     def reload(self):
