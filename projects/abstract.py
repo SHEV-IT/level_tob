@@ -18,7 +18,15 @@ class Bot:
             except Empty:
                 pass
 
-
     @abstractmethod
     def proceed(self, msg):
         pass
+
+
+def load_module(module_name, globals_):
+    level = 0
+    for ch in module_name:
+        if ch != ".":
+            break
+        level += 1
+    return __import__(module_name[level:], globals_, locals(), ["*"], level)

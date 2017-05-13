@@ -157,9 +157,12 @@ class VkBot(BotFather):
         del sys.modules['projects']  # remove projects from cache
         import projects
 
-        for project_id in c.VK_PROJECTS:
-            project_name = c.VK_PROJECTS[project_id]['name']
-            if project_name in project_names:
+        modules = [x[1].get('module', x[1]['name']) for x in c.VK_PROJECTS.items() if x[1]['name'] in project_names]
+        for item in c.VK_PROJECTS.items():
+            project_id = item[0]
+            project_name = item[1]['name']
+            project_module = item[1].get('module', item[1]['name'])
+            if project_module in modules:
                 print 'reloading', project_name
                 self.run_project(project_id, project_name)
 
